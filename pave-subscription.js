@@ -89,7 +89,7 @@ var _class = function () {
 
       this.flushed = flushed;
       this.isStale = false;
-      this.onChange();
+      this.onChange(this);
     }
   }, {
     key: 'shiftQueue',
