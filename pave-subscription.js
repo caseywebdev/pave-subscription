@@ -6,18 +6,37 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
 var _pave = require('pave');
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var isEqualSubset = function isEqualSubset(a, b) {
-  for (var key in a) {
-    if (a[key] !== b[key]) return false;
-  }return true;
+var isObject = function isObject(obj) {
+  return (typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) === 'object' && obj !== null;
 };
 
 var isEqual = function isEqual(a, b) {
-  return isEqualSubset(a, b) && isEqualSubset(b, a);
+  if (a === b) return true;
+
+  if (!isObject(a) || !isObject(b)) return false;
+
+  if (Array.isArray(a)) {
+    var l = a.length;
+    if (!Array.isArray(b) || l !== b.length) return false;
+
+    for (var i = 0; i < l; ++i) {
+      if (!isEqual(a[i], b[i])) return false;
+    }
+
+    return true;
+  }
+
+  if (Object.keys(a).length !== Object.keys(b).length) return false;
+
+  for (var key in a) {
+    if (!isEqual(a[key], b[key])) return false;
+  }return true;
 };
 
 var Deferred = function Deferred() {
@@ -85,7 +104,7 @@ var _class = function () {
       var query = this.query;
 
       var flushed = { error: error, isLoading: isLoading, query: query };
-      if (!this.isStale && this.flushed && isEqual(flushed, this.flushed)) return;
+      if (!this.isStale && isEqual(flushed, this.flushed)) return;
 
       this.flushed = flushed;
       this.isStale = false;
@@ -126,7 +145,7 @@ var _class = function () {
           return deferred.promise;
         }
 
-        if (!runOptions.force && this.prevQuery === query) {
+        if (!runOptions.force && isEqual(this.prevQuery, query)) {
           var error = this.error;
 
           if (error) deferred.reject(error);else deferred.resolve();

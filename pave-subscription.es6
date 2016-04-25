@@ -1,11 +1,29 @@
 import {SyncPromise} from 'pave';
 
-const isEqualSubset = (a, b) => {
-  for (let key in a) if (a[key] !== b[key]) return false;
+const isObject = obj => typeof obj === 'object' && obj !== null;
+
+const isEqual = (a, b) => {
+  if (a === b) return true;
+
+  if (!isObject(a) || !isObject(b)) return false;
+
+  if (Array.isArray(a)) {
+    const l = a.length;
+    if (!Array.isArray(b) || l !== b.length) return false;
+
+    for (let i = 0; i < l; ++i) {
+      if (!isEqual(a[i], b[i])) return false;
+    }
+
+    return true;
+  }
+
+  if (Object.keys(a).length !== Object.keys(b).length) return false;
+
+  for (let key in a) if (!isEqual(a[key], b[key])) return false;
+
   return true;
 };
-
-const isEqual = (a, b) => isEqualSubset(a, b) && isEqualSubset(b, a);
 
 class Deferred {
   constructor() {
@@ -52,7 +70,7 @@ export default class {
   flush() {
     const {error, isLoading, query} = this;
     const flushed = {error, isLoading, query};
-    if (!this.isStale && this.flushed && isEqual(flushed, this.flushed)) return;
+    if (!this.isStale && isEqual(flushed, this.flushed)) return;
 
     this.flushed = flushed;
     this.isStale = false;
@@ -83,7 +101,7 @@ export default class {
         return deferred.promise;
       }
 
-      if (!runOptions.force && this.prevQuery === query) {
+      if (!runOptions.force && isEqual(this.prevQuery, query)) {
         const {error} = this;
         if (error) deferred.reject(error); else deferred.resolve();
         this.shiftQueue();
