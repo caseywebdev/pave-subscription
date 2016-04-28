@@ -1,4 +1,4 @@
-import {SyncPromise} from 'pave';
+import {Deferred} from 'pave';
 
 const isObject = obj => typeof obj === 'object' && obj !== null;
 
@@ -25,26 +25,13 @@ const isEqual = (a, b) => {
   return true;
 };
 
-class Deferred {
-  constructor() {
-    this.promise = new SyncPromise((resolve, reject) => {
-      this.resolve = resolve;
-      this.reject = reject;
-    });
-  }
-}
-
 export default class {
   error = null;
   isLoading = false;
   queue = [];
-  setStale = () => {
-    this.isStale = true;
-    if (!this.isLoading) this.flush();
-  }
 
   constructor({onChange, query, store}) {
-    this.onChange = onChange;
+    this.onChange = () => onChange(this);
     this.query = query;
     this.store = store;
     this.runOrQueue();
@@ -64,17 +51,16 @@ export default class {
   }
 
   destroy() {
-    this.store.unwatch(this.setStale);
+    this.store.unwatch(this.onChange);
   }
 
   flush() {
     const {error, isLoading, query} = this;
     const flushed = {error, isLoading, query};
-    if (!this.isStale && isEqual(flushed, this.flushed)) return;
+    if (isEqual(flushed, this.flushed)) return;
 
     this.flushed = flushed;
-    this.isStale = false;
-    this.onChange(this);
+    this.onChange();
   }
 
   shiftQueue() {
@@ -95,7 +81,7 @@ export default class {
     if (!manual) {
       const query = runOptions.query = this.query;
       if (!query) {
-        this.store.unwatch(this.setStale);
+        this.store.unwatch(this.onChange);
         deferred.resolve();
         this.shiftQueue();
         return deferred.promise;
@@ -109,7 +95,7 @@ export default class {
       }
 
       this.prevQuery = query;
-      this.store.watch(query, this.setStale);
+      this.store.watch(query, this.onChange);
     }
 
     this.error = null;

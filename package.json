@@ -1,6 +1,6 @@
 {
   "name": "pave-subscription",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "author": "Casey Foster <c@sey.me>",
   "license": "MIT",
   "main": "pave-subscription.js",
@@ -15,6 +15,6 @@
     "cogs": "2"
   },
   "peerDependencies": {
-    "pave": "0.2"
+    "pave": "0.3"
   }
 }
