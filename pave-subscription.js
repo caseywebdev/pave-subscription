@@ -39,20 +39,9 @@ var isEqual = function isEqual(a, b) {
   }return true;
 };
 
-var Deferred = function Deferred() {
-  var _this = this;
-
-  _classCallCheck(this, Deferred);
-
-  this.promise = new _pave.SyncPromise(function (resolve, reject) {
-    _this.resolve = resolve;
-    _this.reject = reject;
-  });
-};
-
 var _class = function () {
   function _class(_ref) {
-    var _this2 = this;
+    var _this = this;
 
     var onChange = _ref.onChange;
     var query = _ref.query;
@@ -64,12 +53,9 @@ var _class = function () {
     this.isLoading = false;
     this.queue = [];
 
-    this.setStale = function () {
-      _this2.isStale = true;
-      if (!_this2.isLoading) _this2.flush();
+    this.onChange = function () {
+      return onChange(_this);
     };
-
-    this.onChange = onChange;
     this.query = query;
     this.store = store;
     this.runOrQueue();
@@ -94,7 +80,8 @@ var _class = function () {
   }, {
     key: 'destroy',
     value: function destroy() {
-      this.store.unwatch(this.setStale);
+      this.store.unwatch(this.onChange);
+      delete this.onChange;
     }
   }, {
     key: 'flush',
@@ -104,11 +91,10 @@ var _class = function () {
       var query = this.query;
 
       var flushed = { error: error, isLoading: isLoading, query: query };
-      if (!this.isStale && isEqual(flushed, this.flushed)) return;
+      if (isEqual(flushed, this.flushed)) return;
 
       this.flushed = flushed;
-      this.isStale = false;
-      this.onChange(this);
+      this.onChange();
     }
   }, {
     key: 'shiftQueue',
@@ -121,10 +107,10 @@ var _class = function () {
   }, {
     key: 'runOrQueue',
     value: function runOrQueue() {
-      var _this3 = this;
+      var _this2 = this;
 
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
-      var deferred = arguments.length <= 1 || arguments[1] === undefined ? new Deferred() : arguments[1];
+      var deferred = arguments.length <= 1 || arguments[1] === undefined ? new _pave.Deferred() : arguments[1];
 
       if (this.isLoading) {
         this.queue.push({ options: options, deferred: deferred });
@@ -139,7 +125,7 @@ var _class = function () {
       if (!manual) {
         var query = runOptions.query = this.query;
         if (!query) {
-          this.store.unwatch(this.setStale);
+          this.store.unwatch(this.onChange);
           deferred.resolve();
           this.shiftQueue();
           return deferred.promise;
@@ -154,19 +140,19 @@ var _class = function () {
         }
 
         this.prevQuery = query;
-        this.store.watch(query, this.setStale);
+        this.store.watch(query, this.onChange);
       }
 
       this.error = null;
       this.isLoading = true;
       this.store.run(runOptions).catch(function (error) {
-        return _this3.error = error;
+        return _this2.error = error;
       }).then(function () {
-        _this3.isLoading = false;
-        var error = _this3.error;
+        _this2.isLoading = false;
+        var error = _this2.error;
 
         if (error) deferred.reject(error);else deferred.resolve();
-        _this3.shiftQueue();
+        _this2.shiftQueue();
       });
 
       this.flush();
