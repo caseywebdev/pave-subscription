@@ -8,9 +8,22 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-var _pave = require('pave');
+var _betterPromise = require('better-promise');
+
+var _betterPromise2 = _interopRequireDefault(_betterPromise);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var createDeferred = function createDeferred() {
+  var deferred = {};
+  deferred.promise = new _betterPromise2.default(function (resolve, reject) {
+    deferred.resolve = resolve;
+    deferred.reject = reject;
+  });
+  return deferred;
+};
 
 var isObject = function isObject(obj) {
   return (typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) === 'object' && obj !== null;
@@ -110,7 +123,7 @@ var _class = function () {
       var _this2 = this;
 
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
-      var deferred = arguments.length <= 1 || arguments[1] === undefined ? new _pave.Deferred() : arguments[1];
+      var deferred = arguments.length <= 1 || arguments[1] === undefined ? createDeferred() : arguments[1];
 
       if (this.isLoading) {
         this.queue.push({ options: options, deferred: deferred });

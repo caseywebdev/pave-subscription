@@ -1,4 +1,13 @@
-import {Deferred} from 'pave';
+import Promise from 'better-promise';
+
+const createDeferred = () => {
+  const deferred = {};
+  deferred.promise = new Promise((resolve, reject) => {
+    deferred.resolve = resolve;
+    deferred.reject = reject;
+  });
+  return deferred;
+};
 
 const isObject = obj => typeof obj === 'object' && obj !== null;
 
@@ -71,7 +80,7 @@ export default class {
     this.flush();
   }
 
-  runOrQueue(options = {}, deferred = new Deferred()) {
+  runOrQueue(options = {}, deferred = createDeferred()) {
     if (this.isLoading) {
       this.queue.push({options, deferred});
       this.flush();
