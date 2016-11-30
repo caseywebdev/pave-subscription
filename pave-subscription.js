@@ -94,7 +94,7 @@ var _class = function () {
     key: 'destroy',
     value: function destroy() {
       this.store.unwatch(this.onChange);
-      delete this.onChange;
+      this.onChange = function () {};
     }
   }, {
     key: 'flush',

@@ -61,7 +61,7 @@ export default class {
 
   destroy() {
     this.store.unwatch(this.onChange);
-    delete this.onChange;
+    this.onChange = () => {};
   }
 
   flush() {
