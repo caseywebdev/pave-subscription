@@ -118,8 +118,7 @@ export default class {
         const {error} = this;
         if (error) deferred.reject(error); else deferred.resolve();
         this.shiftQueue();
-      })
-      .catch(er => setTimeout(() => { throw er; }));
+      });
 
     this.flush();
 
