@@ -1,14 +1,3 @@
-import Promise from 'better-promise';
-
-const createDeferred = () => {
-  const deferred = {};
-  deferred.promise = new Promise((resolve, reject) => {
-    deferred.resolve = resolve;
-    deferred.reject = reject;
-  });
-  return deferred;
-};
-
 const isObject = obj => typeof obj === 'object' && obj !== null;
 
 const isEqual = (a, b) => {
@@ -48,20 +37,19 @@ export default class {
 
   setQuery(query) {
     this.query = query;
-    return this.runOrQueue();
+    this.runOrQueue();
+    return this;
   }
 
   reload() {
-    return this.runOrQueue({runOptions: {force: true}});
-  }
-
-  run(runOptions) {
-    return this.runOrQueue({manual: true, runOptions});
+    this.runOrQueue({force: true});
+    return this;
   }
 
   destroy() {
     this.store.unwatch(this.onChange);
     this.onChange = () => {};
+    return this;
   }
 
   flush() {
@@ -71,57 +59,41 @@ export default class {
 
     this.flushed = flushed;
     this.onChange();
+    return this;
   }
 
   shiftQueue() {
-    const next = this.queue.shift();
-    if (next) return this.runOrQueue(next.options, next.deferred);
-
-    this.flush();
+    return this.queue.length ? this.runOrQueue(this.queue.shift()) :
+      this.flush();
   }
 
-  runOrQueue(options = {}, deferred = createDeferred()) {
+  runOrQueue(options = {}) {
     if (this.isLoading) {
-      this.queue.push({options, deferred});
-      this.flush();
-      return deferred.promise;
+      this.queue.push(options);
+      return this.flush();
     }
 
-    const {manual, runOptions = {}} = options;
-    if (!manual) {
-      const query = runOptions.query = this.query;
-      if (!query) {
-        this.store.unwatch(this.onChange);
-        deferred.resolve();
-        this.shiftQueue();
-        return deferred.promise;
-      }
-
-      if (!runOptions.force && isEqual(this.prevQuery, query)) {
-        const {error} = this;
-        if (error) deferred.reject(error); else deferred.resolve();
-        this.shiftQueue();
-        return deferred.promise;
-      }
-
-      this.prevQuery = query;
-      this.store.watch(query, this.onChange);
+    const query = this.query;
+    if (!query) {
+      this.store.unwatch(this.onChange);
+      return this.shiftQueue();
     }
 
+    const {force} = options;
+    if (!force && isEqual(this.prevQuery, query)) return this.shiftQueue();
+
+    this.prevQuery = query;
+    this.store.watch(query, this.onChange);
     this.error = null;
     this.isLoading = true;
     this.store
-      .run(runOptions)
+      .run({force, query})
       .catch(error => this.error = error)
       .then(() => {
         this.isLoading = false;
-        const {error} = this;
-        if (error) deferred.reject(error); else deferred.resolve();
         this.shiftQueue();
       });
 
-    this.flush();
-
-    return deferred.promise;
+    return this.flush();
   }
 }

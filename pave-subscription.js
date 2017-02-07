@@ -8,22 +8,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-var _betterPromise = require('better-promise');
-
-var _betterPromise2 = _interopRequireDefault(_betterPromise);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var createDeferred = function createDeferred() {
-  var deferred = {};
-  deferred.promise = new _betterPromise2.default(function (resolve, reject) {
-    deferred.resolve = resolve;
-    deferred.reject = reject;
-  });
-  return deferred;
-};
 
 var isObject = function isObject(obj) {
   return (typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) === 'object' && obj !== null;
@@ -78,23 +63,21 @@ var _class = function () {
     key: 'setQuery',
     value: function setQuery(query) {
       this.query = query;
-      return this.runOrQueue();
+      this.runOrQueue();
+      return this;
     }
   }, {
     key: 'reload',
     value: function reload() {
-      return this.runOrQueue({ runOptions: { force: true } });
-    }
-  }, {
-    key: 'run',
-    value: function run(runOptions) {
-      return this.runOrQueue({ manual: true, runOptions: runOptions });
+      this.runOrQueue({ force: true });
+      return this;
     }
   }, {
     key: 'destroy',
     value: function destroy() {
       this.store.unwatch(this.onChange);
       this.onChange = function () {};
+      return this;
     }
   }, {
     key: 'flush',
@@ -108,14 +91,12 @@ var _class = function () {
 
       this.flushed = flushed;
       this.onChange();
+      return this;
     }
   }, {
     key: 'shiftQueue',
     value: function shiftQueue() {
-      var next = this.queue.shift();
-      if (next) return this.runOrQueue(next.options, next.deferred);
-
-      this.flush();
+      return this.queue.length ? this.runOrQueue(this.queue.shift()) : this.flush();
     }
   }, {
     key: 'runOrQueue',
@@ -123,54 +104,34 @@ var _class = function () {
       var _this2 = this;
 
       var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
-      var deferred = arguments.length <= 1 || arguments[1] === undefined ? createDeferred() : arguments[1];
 
       if (this.isLoading) {
-        this.queue.push({ options: options, deferred: deferred });
-        this.flush();
-        return deferred.promise;
+        this.queue.push(options);
+        return this.flush();
       }
 
-      var manual = options.manual;
-      var _options$runOptions = options.runOptions;
-      var runOptions = _options$runOptions === undefined ? {} : _options$runOptions;
-
-      if (!manual) {
-        var query = runOptions.query = this.query;
-        if (!query) {
-          this.store.unwatch(this.onChange);
-          deferred.resolve();
-          this.shiftQueue();
-          return deferred.promise;
-        }
-
-        if (!runOptions.force && isEqual(this.prevQuery, query)) {
-          var error = this.error;
-
-          if (error) deferred.reject(error);else deferred.resolve();
-          this.shiftQueue();
-          return deferred.promise;
-        }
-
-        this.prevQuery = query;
-        this.store.watch(query, this.onChange);
+      var query = this.query;
+      if (!query) {
+        this.store.unwatch(this.onChange);
+        return this.shiftQueue();
       }
 
+      var force = options.force;
+
+      if (!force && isEqual(this.prevQuery, query)) return this.shiftQueue();
+
+      this.prevQuery = query;
+      this.store.watch(query, this.onChange);
       this.error = null;
       this.isLoading = true;
-      this.store.run(runOptions).catch(function (error) {
+      this.store.run({ force: force, query: query }).catch(function (error) {
         return _this2.error = error;
       }).then(function () {
         _this2.isLoading = false;
-        var error = _this2.error;
-
-        if (error) deferred.reject(error);else deferred.resolve();
         _this2.shiftQueue();
       });
 
-      this.flush();
-
-      return deferred.promise;
+      return this.flush();
     }
   }]);
 
